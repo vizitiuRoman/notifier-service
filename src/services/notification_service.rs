@@ -15,7 +15,7 @@ impl NotificationService {
     pub fn new(
         notifiers: Notifiers,
     ) -> Self {
-        NotificationService { notifiers }
+        Self { notifiers }
     }
 }
 

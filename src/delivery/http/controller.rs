@@ -9,7 +9,7 @@ pub struct Controller {
 
 impl Controller {
     pub fn new(services: Manager) -> Self {
-        Controller {
+        Self {
             services
         }
     }

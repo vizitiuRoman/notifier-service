@@ -9,7 +9,7 @@ pub struct NotifierResponse {
 
 impl NotifierResponse {
     pub fn new(error: Option<String>, channel: String) -> Self {
-        NotifierResponse{
+        Self {
             success: error.is_none(),
             error,
             channel,

@@ -11,7 +11,7 @@ pub struct Firebase {
 
 impl Firebase {
     pub fn new(key: String) -> Self {
-        Firebase {
+        Self {
             key
         }
     }

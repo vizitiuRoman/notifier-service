@@ -8,7 +8,7 @@ pub struct Manager {
 
 impl Manager {
     pub fn new(notifiers: Notifiers) -> Self {
-        Manager {
+        Self {
             notification_service: NotificationService::new(
                 notifiers
             )
