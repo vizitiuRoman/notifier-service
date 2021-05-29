@@ -1,5 +1,4 @@
-use crate::external::notifier::model::NotifierResponse;
-use crate::models::notification::Notification;
+use crate::{external::notifier::model::NotifierResponse, models::notification::Notification};
 use std::sync::Arc;
 
 pub trait NotificationSrv {

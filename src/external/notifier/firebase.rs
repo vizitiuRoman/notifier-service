@@ -1,6 +1,10 @@
-use crate::external::notifier::model::{FirebaseNotificationReq, FirebaseResponse, Error};
-use crate::external::notifier::notifier::Notifier;
-use crate::models::notification::Message;
+use crate::{
+    external::notifier::{
+        model::{Error, FirebaseNotificationReq, FirebaseResponse},
+        notifier::Notifier,
+    },
+    models::notification::Message,
+};
 
 use curl::easy::{Easy, List};
 use std::io::Read;
@@ -11,19 +15,14 @@ pub struct Firebase {
 
 impl Firebase {
     pub fn new(key: String) -> Self {
-        Self {
-            key
-        }
+        Self { key }
     }
 }
 
 impl Notifier for Firebase {
-    fn send(&self, target: &String, message: &Message) -> Result<(), Error> {
-        let firebase_notification_req = FirebaseNotificationReq {
-            to: target.to_string(),
-            notification: message.clone(),
-            data: message.clone(),
-        };
+    fn send(&self, target: &String, message: Message) -> Result<(), Error> {
+        let firebase_notification_req =
+            FirebaseNotificationReq { to: target.to_string(), notification: message };
 
         let fb_notification_req_str = serde_json::to_string(&firebase_notification_req).unwrap();
 
@@ -39,6 +38,7 @@ impl Notifier for Firebase {
             success: 0,
             failure: 0,
             canonical_ids: 0,
+            results: vec![],
         };
 
         let mut list = List::new();
@@ -48,32 +48,35 @@ impl Notifier for Firebase {
 
         {
             let mut transfer = easy.transfer();
-            transfer.read_function(|buf| {
-                Ok(serialized.read(buf).unwrap_or(0))
-            }).unwrap();
+            transfer.read_function(|buf| Ok(serialized.read(buf).unwrap_or(0))).unwrap();
 
-            transfer.write_function(|data| {
-                let res_str = String::from_utf8(Vec::from(data)).unwrap();
-                match serde_json::from_str(&res_str) {
-                    Ok::<FirebaseResponse, _>(firebase_response) => {
-                        res = firebase_response
-                    }
-                    _ => {}
-                };
-                Ok(data.len())
-            }).unwrap();
+            transfer
+                .write_function(|data| {
+                    let res_str = String::from_utf8(Vec::from(data)).unwrap();
+                    match serde_json::from_str(&res_str) {
+                        Ok::<FirebaseResponse, _>(firebase_response) => res = firebase_response,
+                        _ => {}
+                    };
+                    Ok(data.len())
+                })
+                .unwrap();
 
             match transfer.perform() {
-                Err(_) => return Err(Error {
-                    error: String::from("Success false")
-                }),
+                Err(err) => return Err(Error { error: err.to_string() }),
                 _ => {}
             }
         }
 
         if res.success == 0 {
             return Err(Error {
-                error: String::from("Success false")
+                error: res
+                    .results
+                    .iter()
+                    .map(|v| match &v.error {
+                        Some(err) => err.to_string(),
+                        None => String::from("Unknown error"),
+                    })
+                    .collect(),
             });
         }
 

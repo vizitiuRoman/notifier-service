@@ -1,17 +1,16 @@
-use crate::external::notifier::model::NotifierResponse;
-use crate::services::services::NotificationSrv;
-use crate::models::notification::Notification;
-use crate::services::manager::Manager;
+use crate::{
+    external::notifier::model::NotifierResponse,
+    models::notification::Notification,
+    services::{manager::Manager, services::NotificationSrv},
+};
 
 pub struct Controller {
-    services: Manager
+    services: Manager,
 }
 
 impl Controller {
     pub fn new(services: Manager) -> Self {
-        Self {
-            services
-        }
+        Self { services }
     }
 }
 
