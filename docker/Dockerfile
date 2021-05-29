@@ -1,33 +1,23 @@
-# select build image
-FROM rust:latest as build
-
-# create a new empty shell project
-RUN USER=root cargo new --bin notification-service
-
-WORKDIR /notification-service
-
-# copy over your manifests
-COPY ./Cargo.lock ./Cargo.lock
-COPY ./Cargo.toml ./Cargo.toml
-
-# this build step will cache your dependencies
-RUN cargo build --release
-RUN rm src/*.rs
-
-# copy your source tree
-COPY ./src ./src
-
-RUN cargo clean
-
-# build for release
-RUN cargo build --release
-
-# our final base
-FROM rust:latest
-
-# copy the build artifact from the build stage
-COPY --from=build /notification-service/target/release/notification-service .
-
-# set the startup command to run your binary
-CMD ["./notification-service"]
+FROM debian:buster-slim AS base
+RUN apt-get update \
+    && apt-get install curl -y --no-install-recommends \
+        libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
 EXPOSE 8070
+
+FROM rust:1.51.0-buster AS build
+WORKDIR /usr/src/app
+RUN USER=root cargo init
+COPY ./Cargo.toml .
+COPY ./Cargo.lock .
+RUN cargo build --release
+COPY ./src ./src
+# https://users.rust-lang.org/t/dockerfile-with-cached-dependencies-does-not-recompile-the-main-rs-file/21577
+RUN touch src/main.rs && cargo build --release
+
+FROM base AS final
+WORKDIR /app
+COPY --from=build /usr/src/app/target/release/notifier-service .
+ENV RUST_BACKTRACE=full
+ENTRYPOINT ["/app/notifier-service"]
