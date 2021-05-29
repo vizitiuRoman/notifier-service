@@ -6,13 +6,15 @@ use crate::external::notifier;
 
 mod delivery;
 mod external;
-mod services;
 mod models;
+mod services;
 
-use tower_web::ServiceBuilder;
 use delivery::http;
-use std::collections::HashMap;
 use dotenv::dotenv;
+use env_logger::Builder;
+use log::{info, LevelFilter};
+use std::collections::HashMap;
+use tower_web::ServiceBuilder;
 
 fn main() {
     dotenv().ok();
@@ -20,8 +22,11 @@ fn main() {
     let port = std::env::var("PORT").unwrap();
     let firebase_key = std::env::var("FIREBASEKEY").unwrap();
 
+    let mut builder = Builder::from_default_env();
+    builder.filter(None, LevelFilter::Info).init();
+
     let addr = format!("0.0.0.0:{}", port).parse().expect("Invalid address");
-    println!("Listening on http://{}", addr);
+    info!("Listening on http://{}", addr);
 
     let mut notifiers: notifier::notifier::Notifiers = HashMap::new();
     notifiers.insert(
@@ -29,12 +34,7 @@ fn main() {
         Box::new(notifier::firebase::Firebase::new(firebase_key)),
     );
 
-    let manager = services::manager::Manager::new(
-        notifiers,
-    );
+    let manager = services::manager::Manager::new(notifiers);
 
-    ServiceBuilder::new()
-        .resource(http::controller::Controller::new(manager))
-        .run(&addr)
-        .unwrap();
+    ServiceBuilder::new().resource(http::controller::Controller::new(manager)).run(&addr).unwrap();
 }
